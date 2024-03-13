@@ -1,12 +1,9 @@
 package com.arya2004.springularbackend.service;
 
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
 import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Bucket;
-import io.minio.UploadObjectArgs;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -14,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -30,16 +29,21 @@ public class MinIOService implements  FileService{
         //Prepare Key
         var filenameExtension = StringUtils.getFilenameExtension(file.getOriginalFilename());
 
+
+
+
         var key = UUID.randomUUID().toString() + "." + "mp4";
         //try uploading
         try {
-            String as =file.getContentType();
-            String nameOfOriginal =file.getOriginalFilename();
+
+            Path tempFilePath = Files.createTempFile(UUID.randomUUID().toString(), ".mp4");
+            Files.write(tempFilePath, file.getBytes());
+
 
             List<Bucket> b = minioClient.listBuckets() ;
-            minioClient.uploadObject(
+            ObjectWriteResponse resp =  minioClient.uploadObject(
                     UploadObjectArgs.builder()
-                            .bucket("hello").object(key).filename("C:\\Users\\arya2\\Videos\\LeetCode_Bug.mp4").build());
+                            .bucket("hello").object(key).filename(tempFilePath.toString()).build());
 
         } catch (MinioException e){
             System.out.println(e);
@@ -56,7 +60,7 @@ public class MinIOService implements  FileService{
                                     .method(Method.GET)
                                     .bucket("hello")
                                     .object(key)
-                                    .expiry(2, TimeUnit.HOURS)
+                                    .expiry(168, TimeUnit.HOURS)
 
                                     .build());
             return url;
